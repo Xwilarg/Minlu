@@ -1,5 +1,6 @@
 package eu.zirk.minlu
 
+import android.Manifest
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -24,8 +25,10 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewScreenSizes
 import eu.zirk.minlu.ui.theme.MinluTheme
+import kotlin.getValue
 
 class MainActivity : ComponentActivity() {
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -34,6 +37,12 @@ class MainActivity : ComponentActivity() {
                 MinluApp()
             }
         }
+
+        requestPermissions(arrayOf(Manifest.permission.ACTIVITY_RECOGNITION), 1);
+    }
+
+    override fun onPause() {
+        super.onPause()
     }
 }
 
