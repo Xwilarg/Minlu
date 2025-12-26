@@ -1,6 +1,10 @@
 package eu.zirk.minlu
 
 import android.Manifest
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import android.view.LayoutInflater
 import androidx.activity.ComponentActivity
@@ -27,6 +31,7 @@ import androidx.compose.ui.tooling.preview.PreviewScreenSizes
 import androidx.compose.ui.viewinterop.AndroidView
 import eu.zirk.minlu.ui.theme.MinluTheme
 
+
 class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -38,7 +43,21 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        requestPermissions(arrayOf(Manifest.permission.ACTIVITY_RECOGNITION), 1);
+        val channelId = "CHANNEL_SERVICE"
+        val mChannel = NotificationChannel(
+            channelId,
+            "Step Notifications",
+            NotificationManager.IMPORTANCE_DEFAULT
+        )
+        mChannel.description = "This is the default channel for steps notifications"
+
+        val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+        notificationManager.createNotificationChannel(mChannel)
+
+        requestPermissions(arrayOf(Manifest.permission.ACTIVITY_RECOGNITION), 1)
+        requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 2)
+
+        startForegroundService(Intent(this, StepService::class.java))
     }
 
     override fun onPause() {
