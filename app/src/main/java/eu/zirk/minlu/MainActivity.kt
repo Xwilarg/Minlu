@@ -2,6 +2,7 @@ package eu.zirk.minlu
 
 import android.Manifest
 import android.os.Bundle
+import android.view.LayoutInflater
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -22,10 +23,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewScreenSizes
+import androidx.compose.ui.viewinterop.AndroidView
 import eu.zirk.minlu.ui.theme.MinluTheme
-import kotlin.getValue
 
 class MainActivity : ComponentActivity() {
 
@@ -69,10 +69,11 @@ fun MinluApp() {
         }
     ) {
         Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-            Greeting(
-                name = "Android",
-                modifier = Modifier.padding(innerPadding)
-            )
+            when (currentDestination) {
+                AppDestinations.HOME -> HomeScreen(Modifier.padding(innerPadding))
+                AppDestinations.FAVORITES -> FavoritesScreen(Modifier.padding(innerPadding))
+                AppDestinations.PROFILE -> ProfileScreen(Modifier.padding(innerPadding))
+            }
         }
     }
 }
@@ -94,10 +95,23 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
     )
 }
 
-@Preview(showBackground = true)
 @Composable
-fun GreetingPreview() {
-    MinluTheme {
-        Greeting("Android")
-    }
+fun HomeScreen(modifier: Modifier = Modifier) {
+    AndroidView(
+        modifier = modifier,
+        factory = { context ->
+            LayoutInflater.from(context)
+                .inflate(R.layout.fragment_home, null, false)
+        }
+    )
+}
+
+@Composable
+fun FavoritesScreen(modifier: Modifier = Modifier) {
+    Text("Favorites screen", modifier = modifier)
+}
+
+@Composable
+fun ProfileScreen(modifier: Modifier = Modifier) {
+    Text("Profile screen", modifier = modifier)
 }
