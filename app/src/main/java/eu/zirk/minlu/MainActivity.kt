@@ -107,14 +107,6 @@ enum class AppDestinations(
 }
 
 @Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
-}
-
-@Composable
 fun HomeScreen(modifier: Modifier = Modifier) {
     AndroidView(
         modifier = modifier,
