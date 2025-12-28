@@ -16,13 +16,15 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
+import java.time.ZoneOffset
+import java.time.temporal.ChronoUnit
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 
 @Entity(tableName = "steps")
 data class StepCount(
     @ColumnInfo(name = "steps") val steps: Long,
-    @ColumnInfo(name = "date") val date: String,
+    @ColumnInfo(name = "date") val date: Long,
 )
 
 @Dao
@@ -30,9 +32,8 @@ interface StepsDao {
     @Query("SELECT * FROM steps")
     suspend fun getAll(): List<StepCount>
 
-    @Query("SELECT * FROM steps WHERE date >= date(:startDateTime) " +
-            "AND date < date(:startDateTime, '+1 day')")
-    suspend fun loadAllStepsFromToday(startDateTime: String): Array<StepCount>
+    @Query("SELECT * FROM steps WHERE date >= :startDateTime AND date < :endDateTime")
+    suspend fun loadAllStepsFromToday(startDateTime: Long, endDateTime: Long): Array<StepCount>
 
     @Insert
     suspend fun insertAll(vararg steps: StepCount)
@@ -50,25 +51,23 @@ class Repository(
     private val stepsDao: StepsDao,
 ) {
 
-    fun truncate(date: Instant): Instant {
-        date.da
-    }
 
     @OptIn(ExperimentalTime::class)
     suspend fun storeSteps(stepsSinceLastReboot: Long) = withContext(Dispatchers.IO) {
         val stepCount = StepCount(
             steps = stepsSinceLastReboot,
-            date = Calendar.current Clock.System.now().toString()
+            date = Instant.now().truncatedTo(ChronoUnit.HOURS).epochSecond
         )
-        Log.d(TAG, "Storing steps: $stepCount")
+        Log.d(TAG, "Storing steps: $stepCount at ${Instant.now().truncatedTo(ChronoUnit.HOURS).epochSecond}")
         stepsDao.insertAll(stepCount)
     }
 
     suspend fun loadTodaySteps(): Long = withContext(Dispatchers.IO) {
         //printTheWholeStepsTable() // DEBUG
 
-        val todayAtMidnight = (LocalDateTime.of(LocalDate.now(), LocalTime.MIDNIGHT).toString())
-        val todayDataPoints = stepsDao.loadAllStepsFromToday(startDateTime = todayAtMidnight)
+        val todayAtMidnight = LocalDate.now(ZoneOffset.UTC).atStartOfDay()
+        val todayDataPoints = stepsDao.loadAllStepsFromToday(startDateTime = todayAtMidnight.toEpochSecond(
+            ZoneOffset.UTC), endDateTime = todayAtMidnight.plusHours(24).toEpochSecond(ZoneOffset.UTC))
         when {
             todayDataPoints.isEmpty() -> 0
             else -> {
