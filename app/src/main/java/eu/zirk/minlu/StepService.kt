@@ -1,6 +1,7 @@
 package eu.zirk.minlu
 
 import android.app.Service
+import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
 import android.hardware.Sensor
@@ -10,8 +11,13 @@ import android.hardware.SensorManager
 import android.os.IBinder
 import android.util.Log
 import androidx.core.app.NotificationCompat
+import androidx.room.Room
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.future.future
 import kotlinx.coroutines.suspendCancellableCoroutine
+import java.time.Instant
+import java.time.temporal.ChronoUnit
 import kotlin.coroutines.resume
 
 class StepService : Service() {
@@ -23,6 +29,11 @@ class StepService : Service() {
         sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER) }
 
     private lateinit var listener: SensorEventListener
+    private var stepCountRef: Long = -1L
+    private var currStepHour: Long = -1L
+    private var hourlyStepDelta: Long = 0L
+
+    private lateinit var db: AppDatabase
 
     override fun onBind(intent: Intent): IBinder? {
         return null
@@ -39,6 +50,11 @@ class StepService : Service() {
             notification
         )
 
+        db = Room.databaseBuilder(
+            applicationContext,
+            AppDatabase::class.java, "minlu-db"
+        ).build()
+
         registerStepListener()
 
         return START_STICKY
@@ -49,7 +65,29 @@ class StepService : Service() {
             override fun onSensorChanged(event: SensorEvent?) {
                 if (event == null) return
                 val steps = event.values[0].toLong()
-                Log.d(TAG, "Steps since last reboot: $steps")
+                val time = Instant.now().truncatedTo(ChronoUnit.HOURS).epochSecond
+                if (stepCountRef == -1L || steps == 0L) {
+                    stepCountRef = steps
+                    currStepHour = time
+                    hourlyStepDelta = 0L
+                    return
+                } else if (currStepHour != time) {
+                    if (hourlyStepDelta > 0L) {
+                        val stepCount = StepCount(
+                            steps = hourlyStepDelta,
+                            date = currStepHour
+                        )
+                        Log.d(ContentValues.TAG, "Storing steps: ${stepCount.steps} at ${stepCount.date}")
+                        GlobalScope.future {
+                            db.stepsDao().insertAll(stepCount)
+                        }
+                    }
+                    currStepHour = time
+                    hourlyStepDelta = 0L
+                } else {
+                    hourlyStepDelta += (steps - stepCountRef)
+                }
+                stepCountRef = steps
             }
 
             override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {
